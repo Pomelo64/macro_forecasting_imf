@@ -1,9 +1,4 @@
 # Preface {.unnumbered}
 
-This is a Quarto book.
+This is a booklet based on the IMF course on EdX about macroeconomic forecasting. 
 
-To learn more about Quarto books visit <https://quarto.org/docs/books>.
-
-```{r}
-1 + 1
-```
