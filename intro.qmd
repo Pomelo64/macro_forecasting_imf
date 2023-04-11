@@ -1,9 +1,242 @@
-# Introduction
+# Module 1 and 2
 
-This is a book created from markdown and executable code.
+# Brief
 
-See @knuth84 for additional discussion of literate programming.
+-   The first module was an intro to Eviews. A quite bland interface, yet important for the lecturers seemingly. It is obvious that the course requires an update, from the software aspect at least.
+
+-   I review a set of terms and concepts while being mentioned by the lecturer.
+
+# Technical Notes
+
+-   It seems a regression line was used without paying attention to the time-series nature and thus lack of independence of the records. A linear regression model between Fiji rGDP and Austrialia's
+
+-   Econometrics is very concerned about the meaningfulness of the coefficients; whether they are reflecting the reality accurately or biased/inflated. Several tests are designed for such quality checks
+
+-   There is no CV and model validation based on out of sample prediction.
+
+# Economics Notes
+
+-   In the interconnected world, the changes in economic situation moves through the network. It seems that the Fiji and Australia are close commercial partners, and thus they grow together. But which one leads and which one follows? Is it a uni-directional or bi-directional causal relation? Or maybe both are driven by a third party?
+
+-   [This interesting paper](https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp2024.en.pdf) shares evidences on \*\**global inflation*\*\*: the possibility of explaining national inflation by global factors.
+
+> Global factors explain a large share of the variance of national inflation rates for advanced countries -- and more generally those with greater GDP per capita, financial development and central bank transparency -- but not for middle and low income countries.
+
+# Ideas
+
+# Questions
+
+```{r libraries}
+knitr::opts_chunk$set(warning = F, message = F)
+library(tidyverse)
+library(ggpubr)
+library(broom)
+```
+
+
+## Q2
 
 ```{r}
-1 + 1
+bahamas_tbl <- read_csv(file = "datasets/Module 2/Caribbean Islands Data/Module2_Caribbean_Assessment_File_Bahamas.csv")
+
+# bahamas_tbl %>% View()
+
+jam_tbl <- read_csv(file = "datasets/Module 2/Caribbean Islands Data/Module2_Caribbean_Assessment_File_Jamaica.csv")
+
+bah_jam_cpi_tbl <- 
+bahamas_tbl %>% 
+        slice(-1) %>% 
+        select(year = `...1`, bah_cpi_eop) %>% 
+        left_join(jam_tbl %>% 
+        slice(-1) %>% 
+        select(year = `...1`, jam_cpi_eop)) %>% 
+        mutate_all(.funs = as.numeric)
 ```
+```{r}
+bah_jam_cpi_tbl %>% 
+        pivot_longer(cols = c(-year), names_to = "country", values_to = "cpi") %>% 
+        ggplot() + 
+        geom_line(aes(x = year, y = cpi, color = country))
+```
+They don't seem that much of related. 
+
+Let's try the diff of logs. There are many unaswered questions here, why log? why diff? I guess diff is for removing the trend, and log is for taming the outliers, and bringing them closer to the rest of the distribution. 
+
+```{r}
+bah_jam_cpi_dlog_tbl <- 
+bah_jam_cpi_tbl %>% 
+        # mutate(across(.cols = c(bah_cpi_eop,jam_cpi_eop), .fns = log10)) 
+        mutate(bah_cpi_log = log10(bah_cpi_eop), 
+               jam_cpi_log = log10(jam_cpi_eop)) %>% 
+        
+        mutate(bah_cpi_log_lag = lag(bah_cpi_log),
+               jam_cpi_log_lag = lag(jam_cpi_log)) %>% 
+        
+        mutate(bah_cpi_diff_log = bah_cpi_log - bah_cpi_log_lag, 
+               jam_cpi_diff_log = jam_cpi_log - jam_cpi_log_lag) 
+```
+
+
+```{r}
+exp_tbl <- 
+bah_jam_cpi_tbl %>% 
+        # for log investigation
+         mutate(bah_cpi_log = log10(bah_cpi_eop), 
+               jam_cpi_log = log10(jam_cpi_eop)) %>%
+        # for lag investigation 
+        mutate(bah_cpi_lag = lag(bah_cpi_eop),
+               jam_cpi_lag = lag(jam_cpi_eop)) %>% 
+        mutate(bah_cpi_diff = bah_cpi_eop - bah_cpi_lag, 
+               jam_cpi_diff = jam_cpi_eop - jam_cpi_lag) 
+g1 <- 
+    exp_tbl %>%    
+         select(year, bah_cpi_eop, jam_cpi_eop) %>% 
+         pivot_longer(cols = c(-year), 
+                      names_to = "indicator", 
+                      values_to = "cpi") %>%
+        ggplot() + 
+        geom_line(aes(x = year, y = cpi, color = indicator),
+                  show.legend = F) + 
+            ggtitle(label = "original values")
+
+g2 <-     
+   exp_tbl %>%    
+         select(year, bah_cpi_log, jam_cpi_log) %>% 
+         pivot_longer(cols = c(-year), 
+                      names_to = "indicator", 
+                      values_to = "log_cpi") %>%
+        ggplot() + 
+        geom_line(aes(x = year, y = log_cpi, color = indicator),
+                  show.legend = F) + 
+            ggtitle(label = "log-cpi values")
+   
+g3 <- 
+        exp_tbl %>%    
+         select(year, bah_cpi_diff, jam_cpi_diff) %>% 
+         pivot_longer(cols = c(-year), 
+                      names_to = "indicator", 
+                      values_to = "diff_cpi") %>%
+        ggplot() + 
+        geom_line(aes(x = year, y = diff_cpi, color = indicator),
+                  show.legend = F) + 
+            ggtitle(label = "diff-cpi values")
+ 
+g4 <-  
+  exp_tbl %>% 
+          mutate(bah_cpi_diff_log = log10(bah_cpi_diff),
+                 jam_cpi_diff_log = log10(jam_cpi_diff)) %>% 
+          select(year, bah_cpi_diff_log, jam_cpi_diff_log) %>% 
+          pivot_longer(cols = -year,
+                       names_to = "indicator",
+                       values_to = "log_diff") %>% 
+        ggplot() + 
+        geom_line(aes(x = year, y = log_diff, color = indicator),
+                  show.legend = F) + 
+            ggtitle(label = "log_diff_cpi values")
+
+g5 <-   
+  exp_tbl %>% 
+          mutate(bah_log_lag = lag(bah_cpi_log),
+                 jam_log_lag = lag(jam_cpi_log)) %>% 
+          mutate(bah_diff_log = bah_cpi_log - bah_log_lag, 
+                 jam_diff_log = jam_cpi_log - jam_log_lag) %>% 
+          select(year, bah_diff_log, jam_diff_log) %>% 
+           pivot_longer(cols = -year,
+                       names_to = "indicator",
+                       values_to = "diff_log") %>% 
+        ggplot() + 
+        geom_line(aes(x = year, y = diff_log, color = indicator),
+                  show.legend = F) + 
+            ggtitle(label = "diff_log_cpi values")
+
+ggpubr::ggarrange(g1,g2,g3,g4,g5)
+```
+So now it is more clear what diff log does: removing a trend and making the series stationary. 
+
+```{r}
+bah_jam_cpi_dlog_tbl %>% 
+        select(year, jam_cpi_diff_log, bah_cpi_diff_log) %>% 
+        pivot_longer(cols = -year, names_to = "indicator", values_to = "diff_log_cpi" ) %>% 
+        ggplot() + 
+        geom_line(aes(x = year, y = diff_log_cpi, color = indicator ))
+```
+```{r modeling}
+lm_1 <- 
+        bah_jam_cpi_dlog_tbl %>% 
+        lm(formula = bah_cpi_eop ~ jam_cpi_eop)
+
+lm_2 <- 
+        bah_jam_cpi_dlog_tbl %>% 
+        lm(formula = bah_cpi_log ~ jam_cpi_log)
+
+lm_3 <- 
+        bah_jam_cpi_dlog_tbl %>% 
+        lm(formula = bah_cpi_diff_log ~ jam_cpi_diff_log)
+
+
+
+lm_glance_1 <- 
+        lm_1 %>% 
+        broom::glance() %>% 
+        mutate(formula = "bah_cpi_eop ~ jam_cpi_eop")
+
+lm_glance_2 <- 
+        lm_2 %>% 
+        broom::glance() %>% 
+        mutate(formula = "bah_cpi_log ~ jam_cpi_log")
+
+lm_glance_3 <- 
+        lm_3 %>% 
+        broom::glance() %>% 
+        mutate(formula = "bah_cpi_diff_log ~ jam_cpi_diff_log")
+
+lm_glance_tbl <- 
+lm_glance_1 %>% 
+        bind_rows(lm_glance_2) %>% 
+        bind_rows(lm_glance_3) 
+
+
+lm_tidy_1 <- 
+        lm_1 %>% 
+        broom::tidy()%>% 
+        mutate(formula = "bah_cpi_eop ~ jam_cpi_eop")
+
+lm_tidy_2 <- 
+        lm_2 %>% 
+        broom::tidy() %>% 
+        mutate(formula = "bah_cpi_log ~ jam_cpi_log")
+
+
+lm_tidy_3 <- 
+        lm_3 %>% 
+        broom::tidy() %>% 
+        mutate(formula = "bah_cpi_diff_log ~ jam_cpi_diff_log")
+
+lm_tidy_tbl <- 
+lm_tidy_1 %>% 
+        bind_rows(lm_tidy_2) %>% 
+        bind_rows(lm_tidy_3)
+```
+
+## 2.6
+
+```{r inflation}
+jam_inflation_tbl <- 
+bah_jam_cpi_tbl %>% 
+        # mutate(jam_cpi_diff = c(NA,diff(jam_cpi_eop))) %>% 
+        mutate(jam_cpi_eop_lag = lag(jam_cpi_eop)) %>% 
+        mutate(jam_cpi_diff = jam_cpi_eop - jam_cpi_eop_lag) %>% 
+        mutate(inflation = jam_cpi_diff / jam_cpi_eop_lag) %>% 
+        select(- bah_cpi_eop)
+
+
+jam_inflation_tbl %>% 
+        slice_max(order_by = inflation, n = 1 )
+
+```
+## 2.7 Atlantis 
+
+```{r}
+atlantis_tbl <- read_csv("datasets/Module 2/Caribbean Islands Data/Module2_Caribbean_Assessment_File_Atlantis.csv")
+```
+

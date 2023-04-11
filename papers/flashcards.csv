@@ -1,0 +1,15 @@
+term ;definition;example;;;;
+elasticity;how much one variable varies by changing another variable. In economics, elasticity measures the responsiveness of one economic variable to a change in another. ;coefficients of a linear regression model is called elasticities! ;;;;
+standard error;standard deviation of the sampling distribution (distribution of the sample means, for instance) ;;;;;
+sampling distribution;the distribution of the means of samples, or any other statistic of samples ;100 samples -> 100 means -> a distribution out of these 100 points is a sampling dist;;;;
+t-statistic;the deviation of the estimated parameter from the hypothesised one over standard error (how many SE the estimation is far from the hypothesised H0 true value ) ;;;;;
+null hypothesis of the coefficients in a linear regression model ;there is no relationship between the x and y, all evidence are due to randomness, thus the true coefficient is zero;;;;;
+hypothesis testing of a LR coefficient;probability of observing such t-statistic or more extreme given h0 is correct;;;;;
+what does Pearson’s correlation measure? ;"the “relative"" closeness to the regression line. The only determinant is the noise level, spread around the line, not slope (except for slope = 0). It is relative bc it depends on the magnitude of y and x. OR how much the points are far from a y = b and close to y = ax + b";;;;;
+r-squared;1 - RSS/TSS. How much our model is better than the naive model (mean)? What % of the variation of the data is explained by our model? ;;;;;
+adjusted r-squared;it seems the more predictor the higher R2. Therefore adj-r2 is a measure of goodness of fit that believes in parsimony principle. If a new predictor does not reduce RSS enough, it will reduce the adj-r2. It is a function of RSS, TSS, the number of cases, and the number of predictors. Adj-r2 = 1 - (RSS/(n - pn)) / (TSS/(n-1));;;;;
+AIC;Akaike Information Criterion. A measure of goodness of fit of the model, commonly vs other models’ in order to choose the best model. An estimator of the prediction error. The lower the better. AIC = f(+np, -likelihood). The lower the better, as it penalises extra useless predictors;;;;;
+what does `diff` do in ts-analysis? ;it removes the trend. The diff series is the changes from the previous point, a differentiation ;;;;;
+why diff? ;we do differentiation, aka differencing, to remove the trend. Why? because we want to be focused on the changes. To assess the association between changes of two time-series ;;;;;
+diff on seasonality? ;it doesn’t remove seasonality. It simply shifts it backward ;;;;;
+t-test vs z-test (4points about them) ;1) both are for comparing means, i.e. testing the significance of the differences between two means. 2) t-test is preferred when the pop variance is unknown or when the sample is small.  3) Z-statistic is a function of the pop variance, t-stat is a function of sample variance. 4) T-dist has longer tails;;;;;

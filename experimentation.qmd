@@ -1,0 +1,178 @@
+# Experiments 
+
+This chapter is for my experimentations. Experimentation is the best way of learning analytics, which is commonly taught through passing facts. Experimentation is about discovering, and fact is about discovered. 
+
+```{r}
+library(tidyverse)
+library(plotly)
+```
+
+
+## Pearson's Correlation 
+
+What does exactly Pearson's correlation depict? What does determine the correlation value? Slope? Standard Deviation of the noise? mean of the noise, i.e. the y intercept? 
+
+```{r}
+results_list <- list()
+models_tbl <- tibble()
+for(slope in seq(-5,5,1)){
+        for(s in seq(0,30,1)){
+                for(m in seq(-5,5,1)){
+                        print(str_c(slope,s,m,sep = "-"))
+                              
+                        sd_value <- s 
+                        mean_value <- m
+                        slope <- slope 
+                        
+                        x <- seq(-10,10,0.01)
+                        noise <- rnorm(n = length(x), mean = mean_value, sd = sd_value)
+                        
+                        
+                        y <- slope*x + noise   
+                        synth_tbl <- tibble(y,x,sd = sd_value, mean = mean_value)
+                        
+                        # g_temp <- ggplot(data = synth_tbl) + 
+                        #         geom_point(aes(x = x, y = y), alpha = 0.3) + 
+                        #         geom_segment(aes(x = min(x), y = min(y), xend = max(x), yend =max(y) ),
+                        #                      color = "red") + 
+                        #         ggtitle(str_c("sd = ",sd_value)) + 
+                        #         geom_smooth(aes(x = x, y = y), method = "lm")
+                        
+                        pearson_corr <- cor(x,y)
+                        lm_model <- lm(y ~ x)
+                        lm_model_glance <- glance(lm_model)
+                        
+                        temp_tbl <- lm_model_glance %>%
+                                mutate(mean = mean_value, sd = sd_value, pearson_corr = pearson_corr, slope = slope) %>%
+                                relocate(sd, mean, pearson_corr, slope)
+                        
+                        models_tbl <- 
+                                models_tbl %>% 
+                                bind_rows(temp_tbl)
+                        
+                        # results_list <- append(results_list,list(data = temp_tbl, plot = g_temp))
+                        print("-----------")
+                }
+                
+        }
+        
+        
+}
+
+models_tbl %>%
+        arrange(sd,mean,slope) %>% 
+        View()
+
+# visual exploration 
+models_tbl %>% 
+        mutate(pearson_corr = abs(pearson_corr)) %>%
+        plotly::plot_ly(x = ~sd, y = ~mean, z = ~slope, color = ~pearson_corr)
+
+# mean does not mean anything here! it is just a change in the intercept
+models_tbl %>%
+        ggplot() +
+        geom_jitter(aes(x = sd, y = slope, color = abs(pearson_corr)),
+                    alpha = 0.5, size = 3) +
+        theme_minimal()
+
+models_tbl %>% 
+        plot_ly(x = ~ abs(pearson_corr), y = ~ r.squared)
+
+models_tbl %>% 
+        plot_ly(x = ~ sd, y = ~AIC)
+```
+
+It seems that the pearson's correlation is defined by the relative magnitude of the noise sd related to y. It is about how tight the points are around the y = ax + b, or how much the y = ax + b is differentiable from y = b. Here a = 0 is the null hypothesis, and a =/= 0 is the alternative. 
+
+
+
+## Log and diff in timeseries 
+
+
+```{r}
+time <- 1:100
+# a linear time series 
+diff_tbl <- 
+        tibble(time,
+               y_linear = 2*time,
+               y_expo = time**2,
+               y_root = sqrt(time),
+               y_log10 = log10(time),
+               y_log2 = log2(time), 
+               y_sin = sin(time))
+
+
+diff_tbl <- 
+diff_tbl %>% 
+        mutate( y_linear_diff = c(NA,diff(y_linear)),
+               y_expo_diff = c(NA,diff(y_expo)),
+               y_root_diff = c(NA,diff(y_root)),
+               y_log10_diff = c(NA,diff(y_log10)),
+               y_log2_diff = c(NA,diff(y_log2)),
+               y_sin_diff = c(NA,diff(y_sin)))
+
+
+```
+
+```{r}
+g1 <- 
+diff_tbl %>% 
+        select(time, y_linear, y_linear_diff) %>% 
+        pivot_longer(cols = -time,
+                     names_to = "series",
+                     values_to = "values") %>% 
+        ggplot() + 
+        geom_line(aes(x = time, y = values, color = series)) 
+
+g2 <- 
+diff_tbl %>% 
+        select(time, y_expo, y_expo_diff) %>% 
+        pivot_longer(cols = -time,
+                     names_to = "series",
+                     values_to = "values") %>% 
+        ggplot() + 
+        geom_line(aes(x = time, y = values, color = series)) 
+
+g3 <- 
+diff_tbl %>% 
+        select(time, y_root, y_root_diff) %>% 
+        pivot_longer(cols = -time,
+                     names_to = "series",
+                     values_to = "values") %>% 
+        ggplot() + 
+        geom_line(aes(x = time, y = values, color = series))
+
+g4 <- 
+diff_tbl %>% 
+        select(time, y_log10, y_log10_diff) %>% 
+        pivot_longer(cols = -time,
+                     names_to = "series",
+                     values_to = "values") %>% 
+        ggplot() + 
+        geom_line(aes(x = time, y = values, color = series)) 
+
+g5 <- 
+diff_tbl %>% 
+        select(time, y_log2, y_log2_diff) %>% 
+        pivot_longer(cols = -time,
+                     names_to = "series",
+                     values_to = "values") %>% 
+        ggplot() + 
+        geom_line(aes(x = time, y = values, color = series)) 
+
+g6 <- 
+        diff_tbl %>% 
+        select(time, y_sin, y_sin_diff) %>% 
+        pivot_longer(cols = -time,
+                     names_to = "series",
+                     values_to = "values") %>% 
+        ggplot() + 
+        geom_line(aes(x = time, y = values, color = series)) 
+
+ 
+ggpubr::ggarrange(g1,g2,g3,g4,g5,g6, ncol = 2, nrow = 3)
+```
+
+if `diff` works as differentiation, then with double or triple diffs we can linearize a non-linear trend. Nevetheless, diff is useless in face of seasonality. 
+
+

@@ -1,0 +1,30 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "MacroEconomics Forecasting",
+    "section": "",
+    "text": "Preface\nThis is a booklet based on the IMF course on EdX about macroeconomic forecasting.\nThe course is being taught using Eviews and I am going to re-do the exercises and examples using R. Besides that, this booklet is my notebook to write-down my notes about the course and the forecasting in general.\nIn summary, while the booklet is supposed to be oriented around the EdX course of IMF, it won’t remain limited to the course, as wandering is an essential part of the learning and an absolute joy!\nLet’s get started"
+  },
+  {
+    "objectID": "intro.html",
+    "href": "intro.html",
+    "title": "1  Module 1 and 2",
+    "section": "",
+    "text": "2 Brief"
+  },
+  {
+    "objectID": "intro.html#q2",
+    "href": "intro.html#q2",
+    "title": "1  Module 1 and 2",
+    "section": "6.1 Q2",
+    "text": "6.1 Q2\n\nbahamas_tbl <- read_csv(file = \"datasets/Module 2/Caribbean Islands Data/Module2_Caribbean_Assessment_File_Bahamas.csv\")\n\n# bahamas_tbl %>% View()\n\njam_tbl <- read_csv(file = \"datasets/Module 2/Caribbean Islands Data/Module2_Caribbean_Assessment_File_Jamaica.csv\")\n\nbah_jam_cpi_tbl <- \nbahamas_tbl %>% \n        slice(-1) %>% \n        select(year = `...1`, bah_cpi_eop) %>% \n        left_join(jam_tbl %>% \n        slice(-1) %>% \n        select(year = `...1`, jam_cpi_eop)) %>% \n        mutate_all(.funs = as.numeric)\n\n\nbah_jam_cpi_tbl %>% \n        pivot_longer(cols = c(-year), names_to = \"country\", values_to = \"cpi\") %>% \n        ggplot() + \n        geom_line(aes(x = year, y = cpi, color = country))\n\n\n\n\nThey don’t seem that much of related.\nLet’s try the diff of logs. There are many unaswered questions here, why log? why diff? I guess diff is for removing the trend, and log is for taming the outliers, and bringing them closer to the rest of the distribution.\n\nbah_jam_cpi_dlog_tbl <- \nbah_jam_cpi_tbl %>% \n        # mutate(across(.cols = c(bah_cpi_eop,jam_cpi_eop), .fns = log10)) \n        mutate(bah_cpi_log = log10(bah_cpi_eop), \n               jam_cpi_log = log10(jam_cpi_eop)) %>% \n        \n        mutate(bah_cpi_log_lag = lag(bah_cpi_log),\n               jam_cpi_log_lag = lag(jam_cpi_log)) %>% \n        \n        mutate(bah_cpi_diff_log = bah_cpi_log - bah_cpi_log_lag, \n               jam_cpi_diff_log = jam_cpi_log - jam_cpi_log_lag) \n\n\nbah_jam_cpi_tbl %>% \n        # for log investigation\n         mutate(bah_cpi_log = log10(bah_cpi_eop), \n               jam_cpi_log = log10(jam_cpi_eop)) %>%\n        # for lag investigation \n        mutate(bah_cpi_lag = lag(bah_cpi_eop),\n               jam_cpi_lag = lag(jam_cpi_eop)) %>% \n        mutate(bah_cpi_diff = bah_cpi_eop - bah_cpi_lag, \n               jam_cpi_diff = jam_cpi_eop - jam_cpi_lag) %>% \n        \n        ggplot()\n\n\n\n\n\nbah_jam_cpi_dlog_tbl %>% \n        select(year, jam_cpi_diff_log, bah_cpi_diff_log) %>% \n        pivot_longer(cols = -year, names_to = \"indicator\", values_to = \"diff_log_cpi\" ) %>% \n        ggplot() + \n        geom_line(aes(x = year, y = diff_log_cpi, color = indicator ))"
+  },
+  {
+    "objectID": "summary.html",
+    "href": "summary.html",
+    "title": "2  Summary",
+    "section": "",
+    "text": "In summary, this book has no content whatsoever.\n\n1 + 1\n\n[1] 2"
+  }
+]

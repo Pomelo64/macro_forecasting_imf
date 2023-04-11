@@ -2,13 +2,14 @@ project:
   type: book
 
 book:
-  title: "macro_forecasting_imf"
-  author: "Jane Doe"
+  title: "MacroEconomics Forecasting"
+  author: "Shahin Ashkiani"
   date: "4/9/2023"
   chapters:
     - index.qmd
     - intro.qmd
     - summary.qmd
+    - experimentation.qmd
     - references.qmd
 
 bibliography: references.bib

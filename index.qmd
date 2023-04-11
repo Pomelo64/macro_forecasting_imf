@@ -2,3 +2,15 @@
 
 This is a booklet based on the IMF course on EdX about macroeconomic forecasting. 
 
+The course is being taught using Eviews and I am going to re-do the exercises and examples using R. Besides that, this booklet is my notebook to write-down my notes about the course and the forecasting in general. 
+
+In summary, while the booklet is supposed to be oriented around [the EdX course of IMF](https://www.edx.org/course/macroeconometric-forecasting-2), it won't remain limited to the course, as wandering is an essential part of the learning and an absolute joy! 
+
+Why macro forecasting is separated from time-series forecasting? To me it is about lack of seasonality and in general different characterisitics of macroeconomics variables from, for instance, electricity demand. 
+
+What makes doing such forecasting difficult? The forecasting is either based on the previous behaviour of the system or based on a theory, a model of the real world. The first approach is prone to error because the structure of the economies changes either due to gradual evolutions, such as globalization, or sudden decisions, such as Brexit or Covid19 lockdowns. 
+
+The future is not necessarily similar to the past, since the mechanism beneath the system behaviour is not intact. The second approach is prone to error not only because of the same line of reasoning as the first approach's, but because of the border/boundary of the system. A model is a system and it needs validation. Validation is done by prediction accuracy, and irreducible error is a sign of wrong boundary, i.e. necessity to add or remove some predictors. I believe another problem is the lack of data, and even credibility of the available ones. This list will be updated as I think more and read more about the topic. 
+
+
+Let's get started 
