@@ -14,6 +14,10 @@
 
 -   There is no CV and model validation based on out of sample prediction.
 
+- Exogenous vs endogenous predictors: endogenous predictors are all lagged values of the dependent/target variable. So using endogenous variables is equal to dynamic regression I believe. 
+
+- static vs dynamic forecast: if we use forecasts as independent variables, we have a dynamic forecasting model. For instance the model is endogenous/dynamic, and we want to forecast 10 periods in the future. In order to so, we have to use the forecast of t+1 as a predictor of t+2 value. This is called dynamic forecasting. If we use only the available and actual values as predictors, we have a static forecasting. (for instance 1 period in the future, or using a static model to forecast more than one period in the future.)
+
 # Economics Notes
 
 -   In the interconnected world, the changes in economic situation moves through the network. It seems that the Fiji and Australia are close commercial partners, and thus they grow together. But which one leads and which one follows? Is it a uni-directional or bi-directional causal relation? Or maybe both are driven by a third party?
@@ -22,7 +26,19 @@
 
 > Global factors explain a large share of the variance of national inflation rates for advanced countries -- and more generally those with greater GDP per capita, financial development and central bank transparency -- but not for middle and low income countries.
 
+- serial correlation = auto correlation 
+
 # Ideas
+
+* The difficulty of forecasting stems the issues with modelling. By modelling here I mean the variables that are related to the depndent variable, and how they are related to each other. Also, it is about data. Events such as Brexit or lockdowns may render all the previous data less relevant, even though not totally irrelevant. 
+
+* Where are the Marxian approach to the inflation? Market power of the massive players, as they are price setters at the end. 
+
+* What about a network approach to the inflation? A few pioneer price-setters, and the rest are followers to increase the prices. 
+
+* Papers to cite: Weber on profit-price spiral, Fed on murder of philips curve, ... 
+
+* What I have is experience in reading academic works and using them in my work, experience with econometrics, machine learning, and other scenario-testing modellings such as system dynamics. 
 
 # Questions
 
@@ -234,9 +250,131 @@ jam_inflation_tbl %>%
         slice_max(order_by = inflation, n = 1 )
 
 ```
-## 2.7 Atlantis 
+## 2.7 Atlantis philips curve
+
+It is interesting that the non-existent Philips curve is being estimated here. 
+
+> As you know, the Philips Curve refers to the historical relationship between unemployment and inflation in an economy. The relationship is typically negative; that is, on average, higher unemployment rates have (historically at least) been associated with lower rates of inflation.
+
+Well, this should not be taken for granted to say the least. 
 
 ```{r}
 atlantis_tbl <- read_csv("datasets/Module 2/Caribbean Islands Data/Module2_Caribbean_Assessment_File_Atlantis.csv")
+
+atlantis_tbl <- 
+atlantis_tbl %>% 
+        slice(-1) %>% 
+        rename(year = ...1 ) %>% 
+        mutate_all(.funs = as.numeric)
+
+atlantis_tbl %>% 
+        select(year, atl_infl, atl_unemp_rate) %>% 
+        pivot_longer(cols = -year, names_to = "indicator", values_to = "rate" ) %>% 
+        ggplot() + 
+        geom_line(aes(x = year, y = rate, color = indicator)) 
+
+
+infl_unemp_lm <- lm(formula = atl_infl ~ atl_unemp_rate, data = atlantis_tbl )
+
+infl_unemp_lm %>% broom::glance()
+
+infl_unemp_lm %>% broom::tidy()
+
+atlantis_tbl %>% 
+        select(year, atl_infl) %>%
+        filter(complete.cases(.)) %>%
+        mutate(predictions = infl_unemp_lm$fitted.values) %>% 
+        pivot_longer(cols = -year, names_to = "indicator", values_to = "rate") %>%
+        ggplot() + 
+        geom_line(aes(x = year, y = rate, color = indicator)) + 
+        ggtitle("Actual Values vs Predicted/Fitted values")
+
+
+atlantis_tbl %>% 
+        select(year, atl_infl, atl_unemp_rate) %>%
+        filter(complete.cases(.)) %>%
+        mutate(predictions = infl_unemp_lm$fitted.values) %>%  
+        # arrange(predictions) %>% 
+        # mutate(id = row_number()) %>% 
+        ggplot() + 
+        geom_point(aes(x = atl_unemp_rate, y = atl_infl)) + 
+        geom_point(aes(x = atl_unemp_rate, y = predictions), color = "red") + 
+        ggtitle("The linear model predictions", "The red dots are fitted values/prediction values")
+
 ```
+
+## Q2.9 
+
+In the current formula inf ~ unemp, the R2 is 0.21, which means it is 21% better than the baseline model of the mean of the dependent variable. Adjusted R2 is 0.18, probably a better measure, since we are going to add new predictors to the model. Akaike Information Criterion is 99, something that is going to be meaningful when we have other models. 
+
+
+```{r}
+atl_lm_lagged_unemp <- 
+atlantis_tbl %>% 
+        mutate(atl_unemp_rate_lag1 = lag(atl_unemp_rate)) %>%
+        lm(formula = atl_infl ~ atl_unemp_rate + atl_unemp_rate_lag1)
+
+atl_lm_lagged_unemp %>% broom::glance()
+
+atl_lm_lagged_unemp %>% broom::tidy()
+```
+The adj-r2 is increased, and AIC/BIC is decreased, both pointing to the fact that we have a better model now. Still there is no use of out-of-sample prediction performance for model validation. 
+
+
+
+## Q2.11 
+
+For Durbin-Watson test of Autocorrelation, we can use `car` package. 
+
+```{r}
+atl_lm_dynamic <- 
+atlantis_tbl %>% 
+        mutate(atl_inf_rate_lagged = lag(atl_infl)) %>%
+        lm(formula = atl_infl ~ atl_unemp_rate + atl_inf_rate_lagged)
+
+atl_lm_dynamic %>% broom::glance()
+atl_lm_dynamic %>% broom::tidy()
+```
+
+```{r }
+# install.packages("car")
+library(car)
+
+car::durbinWatsonTest(atl_lm_dynamic)
+car::durbinWatsonTest(atl_lm_lagged_unemp)
+```
+
+So it seems the addition of the lagged dependent variable has made the model worse: the adj-r2 is lower, although the AIC is lower (a contradiction). Also both autocorrelation tests fail to reject the h0, which is lack of autocorrelation, but the dynamic model has a lower p-value and DW statistics. 
+
+
+## Q2.12 
+
+So Durbin-Watson is not a reliable test, and there is another one: Breusch-Godfrey LM test. (Personally, I don't care about tests, give me the CV performance!)
+
+```{r}
+atl_lm_dynamic_2 <- 
+atlantis_tbl %>% 
+        mutate(atl_inf_rate_lagged = lag(atl_infl)) %>%
+        mutate(atl_unemp_rate_lagged = lag(atl_unemp_rate)) %>% 
+        lm(formula = atl_infl ~ atl_unemp_rate + atl_inf_rate_lagged + atl_unemp_rate_lagged)
+
+atl_lm_dynamic_2 %>% broom::glance()
+atl_lm_dynamic_2 %>% broom::tidy()
+```
+
+```{r}
+# install.packages("lmtest")
+bg_test_tbl <- atlantis_tbl %>% 
+        mutate(atl_inf_rate_lagged = lag(atl_infl)) %>%
+        mutate(atl_unemp_rate_lagged = lag(atl_unemp_rate)) 
+
+lmtest::bgtest(formula = atl_infl ~ atl_unemp_rate + atl_inf_rate_lagged + atl_unemp_rate_lagged, order = 3,data = bg_test_tbl) 
+```
+
+
+Since the h0 is the status quo, we fail to reject the null hypothesis which is no-correlation. 
+
+## Q2.16 
+
+
 
